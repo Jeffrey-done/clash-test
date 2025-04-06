@@ -18,6 +18,8 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 from flask_cors import CORS
 from threading import Thread, Event
 from dotenv import load_dotenv
+import threading
+import requests
 
 # 加载环境变量
 load_dotenv()
@@ -442,7 +444,99 @@ def reload_urls():
             "message": f"重新加载URL失败: {str(e)}"
         }), 500
 
+# 添加防休眠功能代码
+class KeepAliveThread(threading.Thread):
+    """后台线程，定期ping应用以保持Replit活跃状态"""
+    
+    def __init__(self, app_url=None, interval=900):
+        """
+        初始化防休眠线程
+        
+        Args:
+            app_url: 应用URL，如果为None则自动检测
+            interval: ping间隔（秒），默认15分钟
+        """
+        super().__init__(daemon=True)
+        self.interval = interval
+        
+        # 确定应用URL
+        if app_url:
+            self.app_url = app_url
+        else:
+            # 尝试从环境变量获取
+            self.app_url = os.environ.get("APP_URL", "")
+            
+            # 如果环境变量中没有，尝试从Replit环境检测
+            if not self.app_url and "REPL_ID" in os.environ and "REPL_OWNER" in os.environ:
+                repl_id = os.environ.get("REPL_ID", "")
+                repl_owner = os.environ.get("REPL_OWNER", "")
+                if repl_id and repl_owner:
+                    self.app_url = f"https://{repl_id}.{repl_owner}.repl.co"
+        
+        self.running = True
+        self.total_pings = 0
+        self.successful_pings = 0
+        
+        # 记录启动信息
+        if self.app_url:
+            add_log(f"防休眠服务已启动，目标URL: {self.app_url}, 间隔: {self.interval}秒", "INFO")
+        else:
+            add_log(f"防休眠服务已启动，但未设置URL。将通过本地端口ping", "WARNING")
+    
+    def run(self):
+        """运行防休眠循环"""
+        while self.running:
+            self.ping()
+            time.sleep(self.interval)
+    
+    def ping(self):
+        """ping应用以保持活跃"""
+        self.total_pings += 1
+        try:
+            # 如果有设置URL，直接ping它
+            if self.app_url:
+                response = requests.get(self.app_url, timeout=10)
+                status = response.status_code
+            else:
+                # 否则ping本地端口
+                port = int(os.environ.get("PORT", 5000))
+                response = requests.get(f"http://localhost:{port}/api/status", timeout=5)
+                status = response.status_code
+            
+            self.successful_pings += 1
+            
+            # 每10次ping记录一次日志
+            if self.total_pings % 10 == 0:
+                success_rate = (self.successful_pings / self.total_pings) * 100
+                add_log(f"防休眠服务运行中: 已ping {self.total_pings}次, 成功率: {success_rate:.1f}%", "INFO")
+                
+            return True
+        except Exception as e:
+            add_log(f"防休眠ping失败: {str(e)}", "WARNING")
+            return False
+    
+    def stop(self):
+        """停止防休眠服务"""
+        self.running = False
+        add_log("防休眠服务已停止", "INFO")
+
 if __name__ == '__main__':
+    # 检测是否在Replit环境中运行
+    is_replit = "REPL_ID" in os.environ or "REPLIT_OWNER" in os.environ
+    
+    # 如果在Replit环境中，启动防休眠线程
+    if is_replit:
+        # 获取自定义的ping间隔，默认15分钟
+        ping_interval = int(os.environ.get("PING_INTERVAL", 900))
+        
+        # 获取应用URL
+        app_url = os.environ.get("APP_URL", "")
+        
+        # 启动防休眠线程
+        keep_alive = KeepAliveThread(app_url=app_url, interval=ping_interval)
+        keep_alive.start()
+        add_log("已启动Replit防休眠服务", "INFO")
+    
     # 确保输出目录存在
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
@@ -452,5 +546,5 @@ if __name__ == '__main__':
     host = os.environ.get('HOST', '0.0.0.0')
     debug = os.environ.get('DEBUG', 'false').lower() == 'true'
     
-    # 启动Flask应用
+    add_log(f"启动Web服务，监听 {host}:{port}", "INFO")
     app.run(host=host, port=port, debug=debug) 
