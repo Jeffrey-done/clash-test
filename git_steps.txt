@@ -1,0 +1,48 @@
+# Git推送问题解决步骤
+
+看起来我们的终端会话被一个未完成的git merge过程卡住了。以下是手动解决这个问题的步骤：
+
+## 方法1：使用新的命令行窗口
+
+1. 打开一个新的PowerShell或Command Prompt窗口
+2. 导航到项目目录：
+```
+cd "C:\Users\PC\Desktop\软件开发\clash-test"
+```
+3. 执行以下命令：
+```
+git reset --hard HEAD
+git pull origin master
+git add webui.py README.md
+git commit -m "添加内置防休眠功能，自动保持Replit项目活跃"
+git push origin master
+```
+
+## 方法2：使用GitHub Desktop
+
+1. 安装GitHub Desktop（如果尚未安装）：https://desktop.github.com/
+2. 打开GitHub Desktop并添加您的本地仓库
+3. 在GitHub Desktop中，您会看到我们的修改
+4. 提交这些修改，并添加描述："添加内置防休眠功能，自动保持Replit项目活跃"
+5. 点击"Push origin"按钮推送到GitHub
+
+## 方法3：重新克隆和应用更改
+
+如果上述方法都不起作用：
+
+1. 在新位置重新克隆仓库：
+```
+git clone https://github.com/Jeffrey-done/clash-test.git clash-test-new
+```
+2. 从当前位置复制修改后的文件到新克隆的仓库
+3. 在新仓库中提交并推送更改
+
+## 重要提醒
+
+我们已经成功实现了内置防休眠功能！这个功能的代码已经保存在您的本地文件中，即使推送到GitHub失败，这些更改也不会丢失。您可以随时再次尝试推送或使用其他方法将其同步到GitHub。
+
+## 你可以简单地验证防休眠功能
+
+1. 检查webui.py文件，确认其中包含KeepAliveThread类
+2. 检查README.md文件，确认其中新增了内置防休眠功能的说明
+3. 在Replit上运行应用时，防休眠功能将自动启动 
