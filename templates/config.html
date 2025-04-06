@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}配置设置 - Clash配置合并工具{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="bi bi-gear-fill"></i> 配置设置</h5>
+            </div>
+            <div class="card-body">
+                {% set config = config or {} %}
+                <form id="config-form">
+                    <!-- 配置源设置 -->
+                    <h5 class="border-bottom pb-2 mb-3">配置源设置</h5>
+                    
+                    <!-- YAML URL列表 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="bi bi-link"></i> YAML URL列表</label>
+                        <div id="yaml-urls-container">
+                            {% for url in config.get('yaml_urls', []) or [] %}
+                            <div class="input-group mb-2 yaml-url-entry">
+                                <input type="text" class="form-control" name="yaml_urls[]" value="{{ url }}">
+                                <button type="button" class="btn btn-outline-danger remove-url-btn">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" id="add-yaml-url" class="btn btn-outline-primary btn-sm mt-2">
+                            <i class="bi bi-plus-circle"></i> 添加URL
+                        </button>
+                    </div>
+                    
+                    <!-- 本地文件列表 -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="bi bi-file-earmark"></i> 本地文件列表</label>
+                        <div id="local-files-container">
+                            {% for file in config.get('local_files', []) or [] %}
+                            <div class="input-group mb-2 local-file-entry">
+                                <input type="text" class="form-control" name="local_files[]" value="{{ file }}">
+                                <button type="button" class="btn btn-outline-danger remove-file-btn">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" id="add-local-file" class="btn btn-outline-primary btn-sm mt-2">
+                            <i class="bi bi-plus-circle"></i> 添加本地文件
+                        </button>
+                    </div>
+                    
+                    <!-- 延迟测试设置 -->
+                    <h5 class="border-bottom pb-2 mb-3">延迟测试设置</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">超时时间 (毫秒)</label>
+                            <input type="number" class="form-control" name="timeout" value="{{ config.get('latency_test', {}).get('timeout', 5000) }}" min="1000" max="10000">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">并发测试数量</label>
+                            <input type="number" class="form-control" name="concurrent_tests" value="{{ config.get('latency_test', {}).get('concurrent_tests', 20) }}" min="1" max="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">重试次数</label>
+                            <input type="number" class="form-control" name="retry_count" value="{{ config.get('latency_test', {}).get('retry_count', 2) }}" min="0" max="5">
+                        </div>
+                    </div>
+                    
+                    <!-- HTTP代理设置 -->
+                    <h5 class="border-bottom pb-2 mb-3">HTTP代理设置</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enable-proxy" name="enable_proxy" {% if config.get('proxy', {}) and config.get('proxy', {}).get('enable') %}checked{% endif %}>
+                                <label class="form-check-label" for="enable-proxy">启用HTTP代理</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">代理地址</label>
+                            <input type="text" class="form-control" name="proxy_address" value="{{ config.get('proxy', {}).get('address', 'http://127.0.0.1:7890') }}" placeholder="http://127.0.0.1:7890">
+                        </div>
+                    </div>
+                    
+                    <!-- 输出设置 -->
+                    <h5 class="border-bottom pb-2 mb-3">输出设置</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">输出文件名</label>
+                            <input type="text" class="form-control" name="filename" value="{{ config.get('output', {}).get('filename', 'optimized_clash_config.yaml') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">输出目录</label>
+                            <input type="text" class="form-control" name="directory" value="{{ config.get('output', {}).get('directory', 'output') }}">
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> 保存配置
+                        </button>
+                        <a href="/" class="btn btn-secondary ms-2">
+                            <i class="bi bi-x-circle"></i> 取消
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加YAML URL按钮事件
+    document.getElementById('add-yaml-url').addEventListener('click', function() {
+        const container = document.getElementById('yaml-urls-container');
+        const newEntry = document.createElement('div');
+        newEntry.className = 'input-group mb-2 yaml-url-entry';
+        newEntry.innerHTML = `
+            <input type="text" class="form-control" name="yaml_urls[]" placeholder="https://example.com/clash.yaml">
+            <button type="button" class="btn btn-outline-danger remove-url-btn">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        container.appendChild(newEntry);
+        
+        // 为新添加的删除按钮绑定事件
+        bindRemoveButtons();
+    });
+    
+    // 添加本地文件按钮事件
+    document.getElementById('add-local-file').addEventListener('click', function() {
+        const container = document.getElementById('local-files-container');
+        const newEntry = document.createElement('div');
+        newEntry.className = 'input-group mb-2 local-file-entry';
+        newEntry.innerHTML = `
+            <input type="text" class="form-control" name="local_files[]" placeholder="local_configs/example.yaml">
+            <button type="button" class="btn btn-outline-danger remove-file-btn">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        container.appendChild(newEntry);
+        
+        // 为新添加的删除按钮绑定事件
+        bindRemoveButtons();
+    });
+    
+    // 绑定所有删除按钮事件
+    function bindRemoveButtons() {
+        document.querySelectorAll('.remove-url-btn, .remove-file-btn').forEach(btn => {
+            btn.onclick = function() {
+                this.closest('.input-group').remove();
+            };
+        });
+    }
+    
+    // 初始绑定删除按钮
+    bindRemoveButtons();
+    
+    // 表单提交事件
+    document.getElementById('config-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 收集表单数据
+        const yaml_urls = Array.from(document.querySelectorAll('input[name="yaml_urls[]"]')).map(input => input.value.trim()).filter(url => url);
+        const local_files = Array.from(document.querySelectorAll('input[name="local_files[]"]')).map(input => input.value.trim()).filter(file => file);
+        
+        const timeout = parseInt(document.querySelector('input[name="timeout"]').value);
+        const concurrent_tests = parseInt(document.querySelector('input[name="concurrent_tests"]').value);
+        const retry_count = parseInt(document.querySelector('input[name="retry_count"]').value);
+        
+        const enable_proxy = document.querySelector('input[name="enable_proxy"]').checked;
+        const proxy_address = document.querySelector('input[name="proxy_address"]').value;
+        
+        const filename = document.querySelector('input[name="filename"]').value;
+        const directory = document.querySelector('input[name="directory"]').value;
+        
+        // 构建配置对象
+        const config = {
+            yaml_urls,
+            local_files,
+            repositories: [], // 暂不支持在UI中编辑
+            latency_test: {
+                timeout,
+                concurrent_tests,
+                retry_count
+            },
+            proxy: {
+                enable: enable_proxy,
+                address: proxy_address
+            },
+            output: {
+                filename,
+                directory,
+                backup: true // 默认启用备份
+            },
+            logging: {
+                level: "INFO",
+                file: "clash_merger.log"
+            }
+        };
+        
+        // 发送到API
+        axios.post('/api/config', config)
+            .then(response => {
+                alert('配置已保存');
+                window.location.href = '/';
+            })
+            .catch(error => {
+                console.error('保存配置失败:', error);
+                alert('保存配置失败: ' + (error.response?.data?.message || '未知错误'));
+            });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,14 @@
+name = "clash-config-merger"
+main = "wsgi.py"
+compatibility_date = "2023-05-18"
+workers_dev = true
+
+[site]
+bucket = "."
+entry-point = "."
+
+[env.production]
+vars = { USE_CLOUD_CONFIG = "true" }
+
+[build]
+command = "pip install -r requirements.txt && python -m flask --app wsgi:app build" 

@@ -1,0 +1,18 @@
+latency_test:
+  concurrent_tests: 50
+  retry_count: 1
+  timeout: 3000
+local_files: []
+logging:
+  file: clash_merger.log
+  level: INFO
+output:
+  backup: true
+  directory: output
+  filename: optimized_clash_config.yaml
+proxy:
+  address: ${PROXY_ADDRESS}
+  enable: ${PROXY_ENABLE}
+repositories: []
+yaml_urls:
+- ${YAML_URL} 
