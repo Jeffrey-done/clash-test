@@ -156,3 +156,63 @@ run = "python webui.py & python ping.py"
 ## 许可证
 
 MIT
+
+## 自定义域名设置
+
+Replit免费版支持绑定自定义域名，可以使用你自己的域名代替默认的`.replit.app`域名，让应用看起来更专业。
+
+### 步骤1：准备一个域名
+
+首先，你需要拥有一个域名。可以从以下域名注册商购买：
+- [Namecheap](https://www.namecheap.com/)
+- [GoDaddy](https://www.godaddy.com/)
+- [阿里云](https://wanwang.aliyun.com/)
+- [腾讯云](https://dnspod.cloud.tencent.com/)
+
+### 步骤2：在Replit中配置自定义域名
+
+1. 打开你的Repl项目
+2. 点击顶部的项目名称旁边的"三点"菜单
+3. 选择"Settings"（设置）
+4. 在左侧菜单中，找到并点击"Custom domains"（自定义域名）
+5. 点击"Add a custom domain"（添加自定义域名）按钮
+6. 输入你的域名（例如：`clash.example.com`）
+7. Replit会显示必要的DNS记录信息
+
+### 步骤3：设置DNS记录
+
+登录到你的域名管理面板（域名注册商提供），添加Replit提供的DNS记录：
+
+**方法1：使用CNAME记录（推荐）**
+- 类型：`CNAME`
+- 主机名/Name：通常是子域名部分（如`clash`）
+- 目标/Value：Replit提供的值（通常形如`项目名.用户名.repl.co`）
+- TTL：可使用默认值（如3600或自动）
+
+**方法2：使用A记录**
+- 类型：`A`
+- 主机名/Name：通常是子域名部分（如`clash`）
+- 目标/Value：Replit提供的IP地址
+- TTL：可使用默认值
+
+### 步骤4：验证并激活
+
+1. 在Replit的"Custom domains"页面，点击"Verify"（验证）按钮
+2. DNS更改可能需要几分钟到几小时不等才能生效
+3. 验证成功后，你将看到状态变为"Active"（激活）
+4. 现在可以使用你的自定义域名访问应用（如`https://clash.example.com`）
+
+### 使用自定义域名的优势
+
+1. **专业形象**：自定义域名让应用看起来更加专业
+2. **易于记忆**：比默认的`.replit.app`域名更好记
+3. **更好的用户体验**：用户不用记住复杂的Replit默认URL
+4. **避免休眠问题**：通过自定义域名访问应用，可以确保UptimeRobot等服务正确找到你的应用
+
+### 注意事项
+
+- 自定义域名需要域名本身的年费，但Replit不会额外收费
+- 如果使用二级域名（如`clash.example.com`），必须是你控制的域名
+- Replit会自动提供免费SSL证书，确保HTTPS连接
+- 一个Repl项目只能绑定一个自定义域名
+- DNS生效通常需要几分钟到几小时，请耐心等待
