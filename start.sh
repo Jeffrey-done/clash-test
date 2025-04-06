@@ -12,7 +12,13 @@ python install_deps.py
 if [ $? -ne 0 ]; then
   echo "尝试直接安装基本依赖..."
   pip install flask flask-cors
+  pip install aiohttp asyncio
+  pip install pyyaml requests
 fi
+
+# 尝试直接安装aiohttp和asyncio（以防安装脚本漏掉了这些）
+pip install aiohttp
+pip install asyncio
 
 # 显示已安装的包
 pip list

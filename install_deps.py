@@ -20,7 +20,9 @@ def install_packages():
         "requests==2.28.2",
         "python-dotenv==1.0.0",
         "rich==13.3.2",
-        "gunicorn==20.1.0"
+        "gunicorn==20.1.0",
+        "aiohttp==3.8.4",
+        "asyncio==3.4.3"
     ]
     
     # 尝试用不同的方法安装PyYAML
@@ -43,6 +45,9 @@ def install_packages():
     # 安装其他包
     for package in packages:
         run_command(f"pip install {package}")
+    
+    # 如果特定包安装失败，尝试使用pip的--prefer-binary选项
+    run_command("pip install --prefer-binary aiohttp")
     
     print("\n依赖安装结果:")
     run_command("pip list")
