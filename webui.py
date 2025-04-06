@@ -45,6 +45,7 @@ CORS(app)  # 启用跨域请求支持
 # 全局变量
 CONFIG_FILE = os.environ.get('CONFIG_FILE', 'config.yaml')
 OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
+URL_SOURCE_FILE = os.environ.get('URL_SOURCE_FILE', 'config_urls.txt')
 TASK_STATUS = {
     'running': False,
     'last_run': None,
@@ -52,6 +53,23 @@ TASK_STATUS = {
     'message': '准备就绪',
     'logs': []
 }
+
+def load_urls_from_file(file_path):
+    """从文本文件加载URL列表，忽略以#开头的注释行"""
+    urls = []
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        urls.append(line)
+            logger.info(f"从文件 {file_path} 加载了 {len(urls)} 个URL")
+        else:
+            logger.warning(f"URL源文件 {file_path} 不存在")
+    except Exception as e:
+        logger.error(f"读取URL文件失败: {str(e)}")
+    return urls
 
 def load_config():
     """加载配置文件"""
@@ -74,7 +92,17 @@ def load_config():
             return os.environ.get(env_var, '')
             
         config_str = re.sub(env_pattern, replace_env_var, config_str)
-        return yaml.safe_load(config_str)
+        config = yaml.safe_load(config_str)
+        
+        # 如果配置中有URL源文件路径，则从文件中加载URL列表
+        if config.get('url_source_file'):
+            url_file = config.get('url_source_file')
+            urls = load_urls_from_file(url_file)
+            if urls:
+                config['yaml_urls'] = urls
+                logger.info(f"使用文件 {url_file} 中的URL替换配置")
+            
+        return config
     except Exception as e:
         logger.error(f"加载配置文件失败: {str(e)}")
         return {}
@@ -383,6 +411,36 @@ def api_stop():
         "status": "success", 
         "message": "任务已停止，已保存已测试的节点"
     })
+
+@app.route('/api/urls', methods=['GET'])
+def api_urls():
+    """获取当前使用的URL列表"""
+    config = load_config()
+    urls = config.get('yaml_urls', [])
+    return jsonify(urls)
+
+@app.route('/api/urls/reload', methods=['POST'])
+def reload_urls():
+    """重新加载URL列表"""
+    try:
+        config = load_config()
+        if config.get('url_source_file'):
+            urls = load_urls_from_file(config.get('url_source_file'))
+            return jsonify({
+                "status": "success", 
+                "message": f"已重新加载 {len(urls)} 个URL",
+                "urls": urls
+            })
+        else:
+            return jsonify({
+                "status": "error", 
+                "message": "未配置URL源文件"
+            }), 400
+    except Exception as e:
+        return jsonify({
+            "status": "error", 
+            "message": f"重新加载URL失败: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     # 确保输出目录存在

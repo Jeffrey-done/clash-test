@@ -19,7 +19,7 @@
 3. 连接你的GitHub仓库
 4. 设置以下环境变量:
    - `USE_CLOUD_CONFIG`: true
-   - `YAML_URL`: 你的clash配置URL
+   - `URL_SOURCE_FILE`: 配置链接的TXT文件路径（默认为config_urls.txt）
    - `PROXY_ENABLE`: true/false
    - `PROXY_ADDRESS`: 你的HTTP代理地址(如果启用)
 
@@ -47,6 +47,19 @@ python webui.py
 ### 配置
 
 编辑`config.yaml`文件或设置环境变量来配置应用。
+
+### 配置URL源
+
+你可以通过以下两种方式配置Clash配置源URL:
+
+1. **使用TXT文件 (推荐)**: 
+   - 创建一个名为`config_urls.txt`的文件
+   - 每行放置一个URL
+   - 可以使用#添加注释行
+   - 设置环境变量`URL_SOURCE_FILE`指向这个文件
+
+2. **直接在配置文件中设置**:
+   - 在`config.yaml`中的`yaml_urls`列表中添加URL
 
 ## 许可证
 

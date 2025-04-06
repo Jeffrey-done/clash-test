@@ -1,0 +1,4 @@
+https://example.com/clash-config1.yaml
+https://example.com/clash-config2.yaml
+# 可以添加注释，以#开头的行会被忽略
+https://example.com/clash-config3.yaml 

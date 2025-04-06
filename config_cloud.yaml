@@ -14,5 +14,5 @@ proxy:
   address: ${PROXY_ADDRESS}
   enable: ${PROXY_ENABLE}
 repositories: []
-yaml_urls:
-- ${YAML_URL} 
+url_source_file: ${URL_SOURCE_FILE}
+yaml_urls: [] 
