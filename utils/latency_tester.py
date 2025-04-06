@@ -27,96 +27,84 @@ class LatencyTester:
         """
         self.config = config
         latency_config = config.get('latency_test', {}) or {}
-        self.timeout_ms = latency_config.get('timeout', 5000) / 1000  # 转换为秒
-        self.concurrent_tests = latency_config.get('concurrent_tests', 50)
-        self.retry_count = latency_config.get('retry_count', 2)
+        self.timeout_ms = latency_config.get('timeout', 2000)  # 降低默认值为2000ms
+        self.concurrent_tests = latency_config.get('concurrent_tests', 20)  # 降低默认值为20
+        self.retry_count = latency_config.get('retry_count', 1)
+        self.batch_interval = latency_config.get('batch_interval', 1)  # 增加批次间隔默认为1秒
+        self.max_nodes = latency_config.get('max_nodes', 300)  # 增加最大节点数限制
         
         # 增加一个随机延迟，避免同时大量连接导致网络拥堵
-        self.max_random_delay = 0.5  # 最大随机延迟秒数
+        random.seed(time.time())
     
     async def test_proxy(self, proxy):
         """测试单个代理节点的延迟
         
         Args:
-            proxy: 代理节点
+            proxy: 代理节点字典
             
         Returns:
-            (代理节点, 延迟毫秒数) 元组，如果节点无效则延迟为 -1
+            如果连接成功，返回(proxy, latency)，否则返回(proxy, -1)
         """
         # 随机延迟开始测试，减轻突发连接压力
-        await asyncio.sleep(random.uniform(0, self.max_random_delay))
+        await asyncio.sleep(random.uniform(0, 0.5))
         
         server = proxy.get('server')
         port = proxy.get('port')
         
-        if not server or not port:
-            logger.warning(f"代理节点缺少服务器或端口信息: {proxy.get('name', '未命名')}")
+        if not self._is_valid_address(server) or not port:
+            logger.warning(f"无效的服务器地址或端口: {server}:{port}")
             return proxy, -1
         
-        # 尝试多次连接，取最小延迟
-        min_latency = float('inf')
-        success = False
-        sock = None
+        # 设置超时时间更短，避免卡死
+        timeout_seconds = min(self.timeout_ms / 1000, 2.0)  # 最大2秒
         
-        for attempt in range(self.retry_count):
-            try:
-                start_time = time.time()
-                
-                # 确定IP地址类型 (IPv4 或 IPv6)
-                addr_info = None
-                try:
-                    # 尝试解析地址
-                    addr_info = socket.getaddrinfo(server, int(port), socket.AF_UNSPEC, socket.SOCK_STREAM)
-                except socket.gaierror:
-                    logger.debug(f"无法解析地址: {server}")
-                    continue
-                
-                if not addr_info:
-                    continue
-                
-                # 使用第一个地址信息
-                family, socktype, proto, _, addr = addr_info[0]
-                
-                # 创建适当类型的socket
-                sock = socket.socket(family, socktype, proto)
-                sock.settimeout(self.timeout_ms)
-                
-                # 连接
-                await asyncio.get_event_loop().sock_connect(sock, addr)
-                
-                latency = (time.time() - start_time) * 1000  # 转换为毫秒
-                min_latency = min(min_latency, latency)
-                success = True
-                
-                # 关闭socket
-                sock.close()
-                sock = None
-                
-                # 如果已经成功，就不需要再重试了
-                break
-                
-            except (socket.timeout, socket.error, OSError) as e:
-                logger.debug(f"连接失败 (尝试 {attempt+1}/{self.retry_count}): {proxy.get('name', '未命名')}, 错误: {str(e)}")
-                await asyncio.sleep(0.5)  # 失败后短暂等待再重试
-                continue
-            except Exception as e:
-                logger.error(f"测试节点时发生未知错误: {proxy.get('name', '未命名')}, 错误: {str(e)}")
-                break
-            finally:
-                # 确保socket被关闭
-                if sock:
+        latency = -1  # 默认为-1表示失败
+        
+        # 尝试解析域名，获取地址信息
+        try:
+            # 尝试获取地址信息
+            addrinfo = socket.getaddrinfo(server, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            
+            # 我们将尝试第一个可用的地址
+            for retry in range(self.retry_count):
+                for family, socktype, proto, canonname, sockaddr in addrinfo:
                     try:
+                        # 创建适当类型的socket
+                        sock = socket.socket(family, socktype, proto)
+                        sock.settimeout(timeout_seconds)
+                        
+                        # 连接
+                        start_time = time.time()
+                        sock.connect(sockaddr)
+                        end_time = time.time()
+                        
+                        # 计算延迟（毫秒）
+                        latency = int((end_time - start_time) * 1000)
+                        
+                        # 更新代理信息
+                        proxy['latency'] = latency
+                        
+                        # 关闭连接
                         sock.close()
-                    except:
-                        pass
-        
-        if success:
-            logger.debug(f"节点 {proxy.get('name', '未命名')} 延迟: {min_latency:.2f}ms")
-            # 将延迟添加到代理信息中
-            proxy['latency'] = round(min_latency, 2)
-            return proxy, min_latency
-        else:
-            logger.debug(f"节点 {proxy.get('name', '未命名')} 连接失败")
+                        
+                        # 延迟测试成功，返回
+                        return proxy, latency
+                    except (socket.timeout, ConnectionRefusedError, OSError) as e:
+                        if sock:
+                            sock.close()
+                        # 记录失败，尝试下一个地址
+                        continue
+            
+            # 如果所有地址都失败
+            return proxy, -1
+            
+        except (socket.gaierror, socket.error) as e:
+            # 无法解析域名或其他错误
+            logger.debug(f"无法连接到服务器 {server}:{port} - {str(e)}")
+            return proxy, -1
+        except Exception as e:
+            # 捕获所有其他异常
+            logger.debug(f"测试代理时发生错误 {server}:{port} - {str(e)}")
             return proxy, -1
     
     async def test_batch(self, proxies, progress=None, task_id=None):
@@ -177,6 +165,13 @@ class LatencyTester:
         # 使用我们自己的进度显示，而不是嵌套的Progress
         console.print("[cyan]正在测试节点延迟...[/cyan]")
         
+        # 检查是否超过最大节点数
+        if len(proxies) > self.max_nodes:
+            logger.warning(f"节点数量({len(proxies)})超过最大限制({self.max_nodes})，将随机选择{self.max_nodes}个节点进行测试")
+            console.print(f"[yellow]节点数量过多，将只测试{self.max_nodes}个节点[/yellow]")
+            random.shuffle(proxies)
+            proxies = proxies[:self.max_nodes]
+            
         # 分批测试，避免并发太多
         batches = [proxies[i:i+self.concurrent_tests] for i in range(0, len(proxies), self.concurrent_tests)]
         valid_proxies = []
@@ -203,9 +198,10 @@ class LatencyTester:
                 progress_value = int(60 + (i+1) / len(batches) * 30)  # 60%-90%之间更新进度
                 task_status['progress'] = min(progress_value, 90)
                 
-            # 每批次测试后稍微暂停，避免连续大量请求
+            # 每批次测试后休眠指定时间，避免连续大量请求
             if i < len(batches) - 1:  # 如果不是最后一批
-                await asyncio.sleep(0.5)
+                logger.info(f"等待 {self.batch_interval} 秒后开始下一批测试")
+                await asyncio.sleep(self.batch_interval)
         
         # 按延迟排序
         valid_proxies.sort(key=lambda x: x.get('latency', float('inf')))

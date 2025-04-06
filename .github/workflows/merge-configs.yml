@@ -1,0 +1,47 @@
+name: Merge Clash Configs
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # 每6小时运行一次
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  merge-configs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run config merger
+        run: |
+          mkdir -p docs/configs
+          python scripts/merge_configs.py
+        
+      - name: Update README with timestamp
+        run: |
+          echo "## 最近更新" > update_info.md
+          echo "最后更新时间: $(date '+%Y-%m-%d %H:%M:%S')" >> update_info.md
+          echo "包含节点数: $(cat docs/configs/node_count.txt 2>/dev/null || echo '未知')" >> update_info.md
+          
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add docs/configs/
+          git add update_info.md
+          
+          # 尝试提交更改，即使没有更改也不会失败
+          git commit -m "自动更新配置文件 $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+          git push 

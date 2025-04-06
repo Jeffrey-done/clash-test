@@ -1,0 +1,14 @@
+# Clash配置URL源列表
+# 每行一个URL，以#开头的行会被忽略
+
+# 优质源
+https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.yml
+https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/clash.yml
+https://raw.githubusercontent.com/chengaopan/AutoMergePublicNodes/master/list.yml
+
+# 备选源
+#https://raw.githubusercontent.com/aiboboxx/clashfree/refs/heads/main/clash.yml
+#https://raw.githubusercontent.com/ripaojiedian/freenode/main/clash
+#https://raw.githubusercontent.com/ts-sf/fly/refs/heads/main/clash
+#https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/c.yaml
+#https://raw.githubusercontent.com/ermaozi01/free_clash_vpn/main/subscribe/clash.yml 

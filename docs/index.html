@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash配置合并工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+        }
+        .footer {
+            margin-top: 2rem;
+            padding: 1rem 0;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-lightning-charge-fill"></i> Clash配置合并工具
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- 状态卡片 -->
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-info-circle"></i> 状态信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="status-info">
+                            <p><strong>加载中...</strong></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 使用说明卡片 -->
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-question-circle"></i> 使用说明</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>点击"下载配置"按钮获取最新配置</li>
+                            <li>将下载的配置文件导入到Clash客户端</li>
+                            <li>系统每6小时自动更新一次配置</li>
+                            <li>可以查看配置详情了解更多信息</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 配置文件卡片 -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-file-earmark-text"></i> 可用配置</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="config-list" class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>文件名</th>
+                                        <th>更新时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="3" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 节点信息卡片 -->
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-diagram-3"></i> 节点信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="node-info">
+                            <p class="text-center">选择配置文件查看节点信息</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Clash配置合并工具 &copy; 2023 | <a href="https://github.com/你的用户名/clash-config-merger" target="_blank">GitHub仓库</a></span>
+        </div>
+    </footer>
+    
+    <!-- 模态框 -->
+    <div class="modal fade" id="configDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">配置详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="config-detail" class="bg-light p-3 rounded" style="max-height: 500px; overflow-y: auto;"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <a id="download-link" href="#" class="btn btn-primary">下载</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载状态信息
+            fetch('https://raw.githubusercontent.com/你的用户名/clash-config-merger/main/update_info.md')
+                .then(response => response.text())
+                .then(data => {
+                    // 简单解析Markdown并显示
+                    document.getElementById('status-info').innerHTML = data
+                        .replace(/^## (.*?)$/gm, '<h5>$1</h5>')
+                        .replace(/^(.*?): (.*?)$/gm, '<p><strong>$1:</strong> $2</p>');
+                })
+                .catch(error => {
+                    document.getElementById('status-info').innerHTML = 
+                        '<div class="alert alert-danger">无法加载状态信息</div>';
+                });
+            
+            // 加载配置文件列表
+            fetch('https://api.github.com/repos/你的用户名/clash-config-merger/contents/docs/configs')
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        const tableBody = document.querySelector('#config-list tbody');
+                        tableBody.innerHTML = '';
+                        
+                        data.filter(file => file.name.endsWith('.yaml') || file.name.endsWith('.yml'))
+                            .forEach(file => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${file.name}</td>
+                                    <td>最近更新</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info view-config" data-file="${file.name}">
+                                            <i class="bi bi-eye"></i> 查看
+                                        </button>
+                                        <a href="${file.download_url}" class="btn btn-sm btn-primary" download>
+                                            <i class="bi bi-download"></i> 下载
+                                        </a>
+                                    </td>
+                                `;
+                                tableBody.appendChild(row);
+                            });
+                            
+                        // 查看配置点击事件
+                        document.querySelectorAll('.view-config').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const fileName = this.getAttribute('data-file');
+                                const downloadUrl = `https://raw.githubusercontent.com/你的用户名/clash-config-merger/main/docs/configs/${fileName}`;
+                                
+                                // 设置下载链接
+                                document.getElementById('download-link').href = downloadUrl;
+                                document.getElementById('download-link').setAttribute('download', fileName);
+                                
+                                // 显示配置详情
+                                fetch(downloadUrl)
+                                    .then(response => response.text())
+                                    .then(data => {
+                                        document.getElementById('config-detail').textContent = data;
+                                        new bootstrap.Modal(document.getElementById('configDetailModal')).show();
+                                    })
+                                    .catch(error => {
+                                        alert('无法加载配置文件');
+                                    });
+                            });
+                        });
+                    } else {
+                        document.querySelector('#config-list tbody').innerHTML = 
+                            '<tr><td colspan="3" class="text-center">暂无可用配置</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    document.querySelector('#config-list tbody').innerHTML = 
+                        '<tr><td colspan="3" class="text-center text-danger">加载失败</td></tr>';
+                });
+        });
+    </script>
+</body>
+</html> 

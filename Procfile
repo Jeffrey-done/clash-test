@@ -1,1 +1,1 @@
-web: gunicorn wsgi:app --workers=2 --threads=4 --log-level info 
+web: streamlit run app.py --server.port=7860 --server.address=0.0.0.0 
