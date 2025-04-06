@@ -4,6 +4,7 @@
 """
 Clash配置合并工具 - Streamlit界面
 适配Hugging Face Spaces部署
+最后更新：2025-04-06
 """
 
 import streamlit as st
