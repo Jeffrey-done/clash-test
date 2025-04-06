@@ -82,14 +82,76 @@ python webui.py
 2. **直接在配置文件中设置**:
    - 在`config.yaml`中的`yaml_urls`列表中添加URL
 
-## 保持Replit应用长期运行
+## 防止应用休眠（重要）
 
-1. 注册[UptimeRobot](https://uptimerobot.com/)账号
-2. 添加新的监控器
-   - 类型：HTTP(s)
-   - 名称：任意(例如"Clash合并工具")
-   - URL：你的Replit应用URL
-   - 监控间隔：设置为5分钟
+Replit免费版会让应用在一段时间不活跃后休眠（通常是1小时），导致应用无法访问。以下是几种防止应用休眠的方法：
+
+### 方法1：使用UptimeRobot（推荐）
+
+1. 注册[UptimeRobot](https://uptimerobot.com/)免费账号
+2. 添加新的监控器：
+   - 监控类型：HTTP(s)
+   - 友好名称：任意（例如"Clash配置合并工具"）
+   - URL：你的Replit应用URL（例如 https://clash-config-merger.用户名.repl.co）
+   - 监控间隔：设置为5分钟（免费版最短间隔）
+3. 点击"Create Monitor"创建监控
+4. UptimeRobot将每5分钟访问一次你的应用，保持它处于活跃状态
+
+### 方法2：添加自我ping脚本
+
+1. 在项目中创建`ping.py`文件：
+```python
+import time
+import requests
+import logging
+import os
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# 应用URL - 替换为你的实际URL
+APP_URL = "https://你的应用名.用户名.repl.co"
+
+logger.info("启动自我ping服务...")
+
+while True:
+    try:
+        response = requests.get(APP_URL)
+        logger.info(f"Ping结果: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Ping失败: {str(e)}")
+    
+    # 每15分钟ping一次
+    time.sleep(900)
+```
+
+2. 修改`.replit`文件以同时运行主应用和ping脚本：
+```
+run = "python webui.py & python ping.py"
+```
+
+### 方法3：使用其他免费服务
+
+还可以使用其他免费的监控服务来定期访问你的应用：
+
+- [Cron-Job.org](https://cron-job.org)：提供免费的定时任务服务
+- [Kaffeine](https://kaffeine.herokuapp.com/)：专为保持应用唤醒设计（注册后使用）
+- [New Relic](https://newrelic.com/)：提供免费的基础监控
+
+### 方法4：定期手动访问
+
+如果只是个人使用，最简单的方法是：
+- 将应用URL添加到浏览器书签
+- 定期（至少每天一次）访问应用
+- 或在手机上设置定时提醒访问应用
+
+## 其他维护技巧
+
+1. **定期登录Replit**：至少每14天登录一次Replit账户，否则项目可能会被归档
+2. **创建备份**：定期导出生成的配置文件，以防数据丢失
+3. **安装Replit移动应用**：方便随时检查和重启应用
+4. **关注资源限制**：Replit免费版有CPU和内存限制，避免运行过于复杂的操作
 
 ## 许可证
 
