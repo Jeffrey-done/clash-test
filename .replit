@@ -1,8 +1,30 @@
 run = "bash start.sh"
 language = "python3"
+entrypoint = "webui.py"
 
+# 绝对禁止Replit使用UPM安装器
+hidden = [".pythonlibs"]
+
+# 包管理器配置
+[packager]
+language = "python3"
+ignoredPackages = ["unit_tests"]
+
+  [packager.features]
+  packageSearch = true
+  guessImports = true
+  enabledForHosting = false
+
+# 环境变量
 [env]
 PYTHONUNBUFFERED = "1"
+PYTHONPATH = "/home/runner/workspace:$PYTHONPATH"
 
+# Nix配置
 [nix]
-channel = "stable-23_05" 
+channel = "stable-23_05"
+
+# 新增，让Poetry管理依赖
+[deployment]
+run = ["sh", "-c", "bash start.sh"]
+deploymentTarget = "cloudrun" 
